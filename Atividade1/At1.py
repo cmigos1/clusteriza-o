@@ -8,18 +8,25 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import warnings
+import os
+from pathlib import Path
 
 # Suprimir avisos para uma saída mais limpa
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 
+# Garantir que estamos trabalhando no diretório correto (onde está o script)
+script_dir = Path(__file__).parent
+os.chdir(script_dir)
+
 print("Iniciando processamento das atividades...")
+print(f"Diretorio de trabalho: {os.getcwd()}")
 
 # ---
 # --- ATIVIDADE 1: cluster_data_1.csv
 # ---
 print("\n" + "---" * 20)
-print("🏁 ATIVIDADE 1 (data_1.csv)")
+print("ATIVIDADE 1 (data_1.csv)")
 print("---" * 20)
 
 try:
@@ -74,8 +81,9 @@ try:
         
         # [Item 2] Quantos pontos há em cada cluster
         (unique, counts) = np.unique(labels_pred, return_counts=True)
-        contagem_pontos = dict(zip(unique, counts))
-        print(f"[Item 2] Pontos por cluster: {contagem_pontos}")
+        print(f"[Item 2] Pontos por cluster:")
+        for cluster_id, count in zip(unique, counts):
+            print(f"  Cluster {cluster_id}: {count} pontos")
 
         # [Item 3] Coeficiente de Silhouette
         silhouette = silhouette_score(X1_scaled, labels_pred)
@@ -94,16 +102,27 @@ try:
 
     # [Item 5] Há diferença na performance?
     print("\n--- [Item 5] Comparação de Performance (Atividade 1) ---")
-    print(f"Métrica               | KMeans  | Agglomerative | Vencedor")
+    print(f"Métrica               | KMeans  | Agglomerative | Diferença")
     print(f"----------------------|---------|---------------|----------")
     sil_k = resultados_1['KMeans']['silhouette']
     sil_a = resultados_1['AgglomerativeClustering']['silhouette']
-    print(f"Silhouette (-> 1)     | {sil_k:.4f} | {sil_a:.4f}      | {'KMeans' if sil_k > sil_a else 'Agglomerative'}")
+    diff_sil = abs(sil_k - sil_a)
+    print(f"Silhouette (-> 1)     | {sil_k:.4f} | {sil_a:.4f}      | {diff_sil:.4f}")
     
     db_k = resultados_1['KMeans']['davies_bouldin']
     db_a = resultados_1['AgglomerativeClustering']['davies_bouldin']
-    print(f"Davies-Bouldin (-> 0) | {db_k:.4f} | {db_a:.4f}      | {'KMeans' if db_k < db_a else 'Agglomerative'}")
-    print("-> Sim, há diferença. O KMeans performou melhor em ambas as métricas internas.\n")
+    diff_db = abs(db_k - db_a)
+    print(f"Davies-Bouldin (-> 0) | {db_k:.4f} | {db_a:.4f}      | {diff_db:.4f}")
+    
+    # Análise de significância com threshold de 0.01
+    threshold = 0.01
+    if diff_sil < threshold and diff_db < threshold:
+        print(f"-> As diferenças (< {threshold}) são estatisticamente insignificantes.")
+        print("   Ambos os algoritmos têm performance equivalente.\n")
+    else:
+        melhor_sil = 'KMeans' if sil_k > sil_a else 'AgglomerativeClustering'
+        melhor_db = 'KMeans' if db_k < db_a else 'AgglomerativeClustering'
+        print(f"-> Há diferença significativa: {melhor_sil} (Silhouette), {melhor_db} (Davies-Bouldin)\n")
     
     # Gerar Gráfico PCA
     print("Gerando gráfico PCA para Atividade 1...")
@@ -130,5 +149,5 @@ except Exception as e:
 
 
 print("\n" + "---" * 20)
-print("✅ Processamento Concluído.")
-print("Verifique os 2 gráficos salvos: 'atividade_1_elbow_plot.png', 'atividade_1_pca_plot.png'")
+print("Processamento Concluido.")
+print("Verifique os 2 graficos salvos: 'atividade_1_elbow_plot.png', 'atividade_1_pca_plot.png'")

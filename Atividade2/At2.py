@@ -7,16 +7,19 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.metrics import jaccard_score, rand_score, fowlkes_mallows_score, adjusted_rand_score
 from sklearn.metrics.cluster import contingency_matrix
 import warnings
+import os
+from pathlib import Path
 
 # Suprimir avisos para uma saída mais limpa
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 
-print("Iniciando processamento das atividades...")
+script_dir = Path(__file__).parent
+os.chdir(script_dir)
 
-# ---
-# --- ATIVIDADE 2: cluster_data_2.csv
-# ---
+print("Iniciando processamento das atividades...")
+print(f"Diretorio de trabalho: {os.getcwd()}")
+
 print("\n" + "---" * 20)
 print("ATIVIDADE 2 (data_2.csv)")
 print("---" * 20)
@@ -36,11 +39,6 @@ try:
     
     # --- Item 1: Encontrar k ---
     print("\n[Item 1] Qual a quantidade de clusters?")
-    print("\nNOTA METODOLOGICA:")
-    print("    Como os dados possuem rotulos (coluna 'label'), usaremos o Adjusted Rand Index (ARI)")
-    print("    para encontrar o melhor k comparando com os labels verdadeiros.")
-    print("    ARI e adequado aqui pois e invariante a permutacao de labels e mede")
-    print("    a similaridade entre dois agrupamentos (predito vs verdadeiro).\n")
     print("Rodando analises para k=2 a k=10...")
     
     k_range_2 = range(2, 11)
@@ -64,66 +62,48 @@ try:
         agg_ari.append(adjusted_rand_score(y_true, agg_labels))
         
         print(f"  k={k}: KMeans ARI={kmeans_ari[-1]:.4f}, Agg ARI={agg_ari[-1]:.4f}")
-    
-    # Criar figura com 3 subplots
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-    
-    # 1. Método do Cotovelo (KMeans apenas - referência não supervisionada)
-    axes[0].plot(k_range_2, kmeans_inertia, marker='o', linestyle='--', color='blue', linewidth=2)
-    axes[0].set_title('Método do Cotovelo (Elbow) - KMeans', fontsize=14, fontweight='bold')
-    axes[0].set_xlabel('Número de Clusters (k)', fontsize=12)
-    axes[0].set_ylabel('Inércia (WCSS)', fontsize=12)
-    axes[0].set_xticks(k_range_2)
-    axes[0].grid(True, alpha=0.3)
-    # Destacar k=3
-    best_k_elbow = 3
-    axes[0].axvline(x=best_k_elbow, color='red', linestyle=':', linewidth=2, label=f'k={best_k_elbow} (cotovelo)')
-    axes[0].legend()
+
+    # Criar figura com 2 subplots
+    fig, axes = plt.subplots(1, 2, figsize=(18, 5))
     
     # 2. Adjusted Rand Index - KMeans
-    axes[1].plot(k_range_2, kmeans_ari, marker='s', linestyle='-', color='green', linewidth=2)
-    axes[1].set_title('Adjusted Rand Index (ARI) - KMeans', fontsize=14, fontweight='bold')
+    axes[0].plot(k_range_2, kmeans_ari, marker='s', linestyle='-', color='green', linewidth=2)
+    axes[0].set_title('Adjusted Rand Index (ARI) - KMeans', fontsize=14, fontweight='bold')
+    axes[0].set_xlabel('Número de Clusters (k)', fontsize=12)
+    axes[0].set_ylabel('ARI Score', fontsize=12)
+    axes[0].set_xticks(k_range_2)
+    axes[0].grid(True, alpha=0.3)
+    axes[0].axhline(y=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='ARI=1 (perfeito)')
+    # Destacar melhor k
+    best_k_kmeans = k_range_2[np.argmax(kmeans_ari)]
+    axes[0].axvline(x=best_k_kmeans, color='red', linestyle=':', linewidth=2, label=f'k={best_k_kmeans} (melhor)')
+    axes[0].legend()
+
+    # 3. Adjusted Rand Index - AgglomerativeClustering
+    axes[1].plot(k_range_2, agg_ari, marker='^', linestyle='-', color='orange', linewidth=2)
+    axes[1].set_title('Adjusted Rand Index (ARI) - Agglomerative', fontsize=14, fontweight='bold')
     axes[1].set_xlabel('Número de Clusters (k)', fontsize=12)
     axes[1].set_ylabel('ARI Score', fontsize=12)
     axes[1].set_xticks(k_range_2)
     axes[1].grid(True, alpha=0.3)
     axes[1].axhline(y=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='ARI=1 (perfeito)')
     # Destacar melhor k
-    best_k_kmeans = k_range_2[np.argmax(kmeans_ari)]
-    axes[1].axvline(x=best_k_kmeans, color='red', linestyle=':', linewidth=2, label=f'k={best_k_kmeans} (melhor)')
-    axes[1].legend()
-    
-    # 3. Adjusted Rand Index - AgglomerativeClustering
-    axes[2].plot(k_range_2, agg_ari, marker='^', linestyle='-', color='orange', linewidth=2)
-    axes[2].set_title('Adjusted Rand Index (ARI) - Agglomerative', fontsize=14, fontweight='bold')
-    axes[2].set_xlabel('Número de Clusters (k)', fontsize=12)
-    axes[2].set_ylabel('ARI Score', fontsize=12)
-    axes[2].set_xticks(k_range_2)
-    axes[2].grid(True, alpha=0.3)
-    axes[2].axhline(y=1.0, color='gray', linestyle='--', linewidth=1, alpha=0.5, label='ARI=1 (perfeito)')
-    # Destacar melhor k
     best_k_agg = k_range_2[np.argmax(agg_ari)]
-    axes[2].axvline(x=best_k_agg, color='red', linestyle=':', linewidth=2, label=f'k={best_k_agg} (melhor)')
-    axes[2].legend()
-    
+    axes[1].axvline(x=best_k_agg, color='red', linestyle=':', linewidth=2, label=f'k={best_k_agg} (melhor)')
+    axes[1].legend()
+
     plt.tight_layout()
     plt.savefig('atividade_2_analise_k.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     print("\nGrafico 'atividade_2_analise_k.png' salvo.")
     print("\nANALISE (Item 1):")
-    print(f"  - Metodo do Cotovelo (Elbow - nao supervisionado): sugere k={best_k_elbow}")
     print(f"  - ARI KMeans (supervisionado): melhor k={best_k_kmeans} (ARI={max(kmeans_ari):.4f})")
     print(f"  - ARI Agglomerative (supervisionado): melhor k={best_k_agg} (ARI={max(agg_ari):.4f})")
     
     # A resposta correta vem do gabarito
     k_final_2 = y_true.nunique()
-    print(f"\nCONCLUSAO:")
-    print(f"    Quantidade REAL de grupos (coluna 'label'): {k_final_2} (Labels 0, 1, 2)")
-    print(f"    - O ARI confirma que k={best_k_kmeans} e o ideal para ambos os algoritmos")
-    print(f"    - ARI proximo de 1.0 indica concordancia quase perfeita com os labels verdadeiros")
-    print(f"\n    -> Usaremos k={k_final_2} para avaliar a performance dos algoritmos.\n")
-
+    print(f"-> Quantidade de clusters selecionada (baseado no gabarito): {k_final_2}\n")
     # Dicionário para resultados
     resultados_2 = {}
     
@@ -271,29 +251,7 @@ try:
     
     # Identificar os labels originais (0, 1, 2)
     labels_originais = sorted(y_true.unique())
-    
-    # Imprimir a análise para cada cluster previsto
-    # Nota: Os números dos clusters (0, 1, 2) do KMeans podem não
-    # corresponder aos números dos labels (0, 1, 2) do gabarito.
-    # Ex: O "Cluster 0" do KMeans pode ser o "Label 2" do gabarito.
-    
-    # Vamos criar a análise com base no que o heatmap nos mostra:
-    # (Esta análise é baseada na execução do código e nos resultados esperados)
-    
-    # Primeiro, vamos identificar qual cluster previsto corresponde a qual label verdadeiro
-    # para tornar a análise mais fácil de comparar
-    
-    # crosstab = pd.crosstab(df2['cluster_KMeans'], df2['label'])
-    # print("\nMatriz de Contingência (Cluster Previsto vs Label Verdadeiro):")
-    # print(crosstab)
-    
     print("\n--- Interpretação dos Perfis ---")
-    
-    # Encontrar o label com maior média em 'idade19_29'
-    # Esta é uma suposição de análise baseada na visualização dos dados.
-    # O código irá gerar a tabela; esta parte é a interpretação textual.
-    
-    # Vamos analisar o DataFrame 'cluster_analysis'
     
     # Cluster 1 (KMeans) = Label 0 (Gabarito)
     analise_c0 = cluster_analysis.iloc[0] # Primeiro cluster na tabela
